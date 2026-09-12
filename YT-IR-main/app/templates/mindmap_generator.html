@@ -1,0 +1,561 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mindmap Generator{% endblock %}
+
+{% block extra_head %}
+<style>
+    .mindmap-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .mindmap-canvas {
+        background: #FFFFFF;
+        border-radius: 12px;
+        height: 70vh;
+        min-height: 500px;
+        max-height: 800px;
+        position: relative;
+        overflow: hidden;
+        border: 2px solid #E5E7EB;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .mindmap-canvas svg {
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+    }
+
+    .mindmap-canvas svg:active {
+        cursor: grabbing;
+    }
+
+    .video-info {
+        background: #F9FAFB;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border: 1px solid #E5E7EB;
+    }
+
+    .video-thumbnail {
+        width: 120px;
+        height: 90px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .video-details h3 {
+        color: #333333;
+        margin-bottom: 5px;
+    }
+
+    .video-details p {
+        color: #666666;
+        margin: 0;
+    }
+
+    .controls {
+        background: #F9FAFB;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        border: 1px solid #E5E7EB;
+    }
+
+    .control-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .zoom-in {
+        background: #DE1A58;
+        color: white;
+    }
+
+    .zoom-out {
+        background: #6B7280;
+        color: white;
+    }
+
+    .reset-view {
+        background: #00FFF0;
+        color: #333333;
+    }
+
+    .export-btn {
+        background: #10B981;
+        color: white;
+    }
+
+    .control-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+    }
+
+    .error {
+        background: #ef4444;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+
+    .node {
+        position: absolute;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+        max-width: 180px;
+        min-width: 80px;
+        word-wrap: break-word;
+        text-align: center;
+        line-height: 1.4;
+        border: 2px solid transparent;
+        z-index: 10;
+    }
+
+    .node:hover {
+        transform: scale(1.08);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .central-node {
+        font-size: 16px;
+        font-weight: 700;
+        padding: 16px 20px;
+        max-width: 220px;
+        min-width: 120px;
+        border-radius: 12px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        z-index: 100;
+    }
+
+    .branch-node {
+        font-size: 14px;
+        font-weight: 600;
+        padding: 14px 18px;
+        max-width: 160px;
+        min-width: 100px;
+        border-radius: 10px;
+    }
+
+    .child-node {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 10px 14px;
+        max-width: 140px;
+        min-width: 80px;
+        border-radius: 8px;
+    }
+
+    .grandchild-node {
+        font-size: 11px;
+        font-weight: 400;
+        padding: 8px 12px;
+        max-width: 120px;
+        min-width: 70px;
+        border-radius: 6px;
+    }
+
+    .connection {
+        position: absolute;
+        background: #4b5563;
+        height: 3px;
+        transform-origin: left center;
+        z-index: 1;
+        border-radius: 2px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .connection:hover {
+        background: #6b7280;
+        height: 4px;
+    }
+
+    .legend {
+        background: #2a2a2a;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1px solid #444;
+    }
+
+    .legend-text {
+        color: #e1e1e1;
+        font-size: 0.9rem;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .mindmap-container {
+            padding: 10px;
+        }
+
+        .mindmap-canvas {
+            height: 60vh;
+            min-height: 400px;
+        }
+
+        .video-info {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .video-thumbnail {
+            width: 100px;
+            height: 75px;
+        }
+
+        .controls {
+            justify-content: center;
+        }
+
+        .control-btn {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+
+        .node {
+            font-size: 11px;
+            padding: 8px 12px;
+            max-width: 120px;
+        }
+
+        .central-node {
+            font-size: 13px;
+            padding: 12px 16px;
+            max-width: 160px;
+        }
+
+        .branch-node {
+            font-size: 12px;
+            padding: 10px 14px;
+            max-width: 130px;
+        }
+
+        .child-node {
+            font-size: 11px;
+            padding: 8px 12px;
+            max-width: 110px;
+        }
+
+        .grandchild-node {
+            font-size: 10px;
+            padding: 6px 10px;
+            max-width: 100px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .mindmap-canvas {
+            height: 50vh;
+            min-height: 350px;
+        }
+
+        .controls {
+            gap: 5px;
+        }
+
+        .control-btn {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+
+        .legend {
+            gap: 10px;
+        }
+
+        .legend-text {
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mindmap-container">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-project-diagram mr-3 text-yt-red"></i>AI Mindmap Generator
+        </h1>
+        <p class="text-gray-600 text-lg">
+            Transform YouTube videos into interactive visual mindmaps
+        </p>
+    </div>
+
+    <!-- Input Section -->
+    <div class="max-w-2xl mx-auto mb-8">
+        <div class="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+            <label for="video-url" class="block text-gray-700 text-sm font-medium mb-2">
+                YouTube Video URL
+            </label>
+            <div class="flex gap-4">
+                <input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=..."
+                    class="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yt-red">
+                <button onclick="generateMindmap()"
+                    class="px-6 py-3 bg-yt-red text-white rounded-lg hover:bg-red-600 transition duration-200 font-medium">
+                    <i class="fas fa-project-diagram mr-2"></i>Generate Mindmap
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading hidden">
+        <div class="inline-flex items-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+            <span class="text-white">Generating mindmap...</span>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error hidden"></div>
+
+    <!-- Video Info -->
+    <div id="video-info" class="video-info hidden">
+        <img id="video-thumbnail" class="video-thumbnail" src="" alt="Video thumbnail">
+        <div class="video-details">
+            <h3 id="video-title"></h3>
+            <p id="video-duration"></p>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls" class="controls hidden">
+        <button class="control-btn zoom-in" onclick="zoomIn()">
+            <i class="fas fa-search-plus"></i> Zoom In
+        </button>
+        <button class="control-btn zoom-out" onclick="zoomOut()">
+            <i class="fas fa-search-minus"></i> Zoom Out
+        </button>
+        <button class="control-btn reset-view" onclick="resetView()">
+            <i class="fas fa-compress"></i> Reset View
+        </button>
+        <button class="control-btn export-btn" onclick="exportMindmap()">
+            <i class="fas fa-download"></i> Export
+        </button>
+    </div>
+
+    <!-- Mindmap Canvas -->
+    <div id="mindmap-canvas" class="mindmap-canvas">
+        <!-- Canvas will be populated by JavaScript -->
+    </div>
+
+    <!-- Legend -->
+    <div id="legend" class="legend hidden">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #1e40af;"></div>
+            <span class="legend-text">Central Topic</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3b82f6;"></div>
+            <span class="legend-text">Main Branch</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #10b981;"></div>
+            <span class="legend-text">Subtopic</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f59e0b;"></div>
+            <span class="legend-text">Detail</span>
+        </div>
+    </div>
+</div>
+
+<!-- Include mindmap visualization library -->
+<script src="{% static 'js/mindmap-visualization.js' %}"></script>
+
+<script>
+    let mindmapViz = null;
+    let currentMindmap = null;
+
+    async function generateMindmap() {
+        const videoUrl = document.getElementById('video-url').value.trim();
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const videoInfo = document.getElementById('video-info');
+        const canvas = document.getElementById('mindmap-canvas');
+        const controls = document.getElementById('controls');
+        const legend = document.getElementById('legend');
+
+        if (!videoUrl) {
+            showError('Please enter a YouTube video URL');
+            return;
+        }
+
+        // Initialize mindmap visualization if not already done
+        if (!mindmapViz) {
+            mindmapViz = new MindmapVisualization('mindmap-canvas');
+        }
+
+        // Show loading
+        loading.classList.remove('hidden');
+        error.classList.add('hidden');
+        videoInfo.classList.add('hidden');
+        canvas.classList.add('hidden');
+        controls.classList.add('hidden');
+        legend.classList.add('hidden');
+
+        try {
+            const response = await fetch('{% url "app:generate_mindmap" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ video_url: videoUrl })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success && data.mindmap) {
+                displayVideoInfo(data.video_info);
+                currentMindmap = data.mindmap;
+
+                // Clear canvas before rendering
+                canvas.innerHTML = '';
+                mindmapViz = new MindmapVisualization('mindmap-canvas');
+
+                try {
+                    console.log('Rendering mindmap with data:', JSON.stringify(data.mindmap, null, 2));
+                    mindmapViz.renderMindmap(data.mindmap);
+                    canvas.classList.remove('hidden');
+                    controls.classList.remove('hidden');
+                    legend.classList.remove('hidden');
+                } catch (renderError) {
+                    console.error('Mindmap render error:', renderError);
+                    console.error('Error stack:', renderError.stack);
+                    console.error('Mindmap data that caused error:', data.mindmap);
+                    showError('Error displaying mindmap: ' + renderError.message);
+                }
+            } else {
+                showError(data.error || 'Failed to generate mindmap');
+            }
+        } catch (err) {
+            console.error('Network/Processing error:', err);
+            showError('Network error: ' + err.message);
+        } finally {
+            loading.classList.add('hidden');
+        }
+    }
+
+    function displayVideoInfo(videoInfo) {
+        const container = document.getElementById('video-info');
+        document.getElementById('video-thumbnail').src = videoInfo.thumbnail;
+        document.getElementById('video-title').textContent = videoInfo.title;
+        document.getElementById('video-duration').textContent = videoInfo.duration;
+        container.classList.remove('hidden');
+    }
+
+    function zoomIn() {
+        if (mindmapViz) {
+            mindmapViz.zoom(1.2);
+        }
+    }
+
+    function zoomOut() {
+        if (mindmapViz) {
+            mindmapViz.zoom(0.8);
+        }
+    }
+
+    function resetView() {
+        if (mindmapViz) {
+            mindmapViz.reset();
+        }
+    }
+
+    function exportMindmap() {
+        if (!currentMindmap) return;
+
+        const dataStr = JSON.stringify(currentMindmap, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'mindmap.json';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        errorDiv.textContent = message;
+        errorDiv.classList.remove('hidden');
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Allow Enter key to generate mindmap
+    document.getElementById('video-url').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            generateMindmap();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Video Intelligence Hub{% endblock title %}
+
+{% block extra_css %}
+<style>
+    /* Custom creative styles */
+    .hero-gradient {
+        background: linear-gradient(135deg, #DE1A58 0%, #00FFF0 25%, #F8F9FA 50%, #FFFFFF 75%, #E5E7EB 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+    }
+
+    @keyframes gradientShift {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(222, 26, 88, 0.2);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .video-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+    }
+
+    .video-card:hover {
+        transform: translateY(-8px) rotateX(5deg);
+        box-shadow: 0 20px 40px rgba(222, 26, 88, 0.2);
+    }
+
+    .floating-button {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    .pulse-dot {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(222, 26, 88, 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(222, 26, 88, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(222, 26, 88, 0);
+        }
+    }
+
+    .feature-icon {
+        transition: all 0.3s ease;
+    }
+
+    .feature-icon:hover {
+        transform: scale(1.2) rotate(10deg);
+    }
+
+    .search-glow:focus {
+        box-shadow: 0 0 20px rgba(222, 26, 88, 0.3);
+        border-color: #DE1A58;
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 250, 0.8) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(222, 26, 88, 0.1);
+    }
+
+    .video-thumbnail {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .video-thumbnail::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 30%, rgba(236, 72, 153, 0.1) 50%, transparent 70%);
+        transform: translateX(-100%);
+        transition: transform 0.6s;
+    }
+
+    .video-card:hover .video-thumbnail::before {
+        transform: translateX(100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <!-- Hero Section -->
+    <div class="hero-gradient text-gray-800 py-20 px-6">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="mb-8">
+                <div
+                    class="inline-flex items-center justify-center w-20 h-20 bg-yt-red/10 rounded-full mb-6 floating-button">
+                    <i class="fas fa-brain text-4xl text-yt-red"></i>
+                </div>
+            </div>
+            <h1
+                class="text-5xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-yt-red to-aqua">
+                Video Intelligence Hub
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                Transform any YouTube video into an intelligent, searchable knowledge base. Ask questions, get instant
+                answers, and discover insights like never before.
+            </p>
+
+            <!-- Main Input Section -->
+            <div class="max-w-2xl mx-auto">
+                <form method="post" action="{% url 'app:process_single_video' %}" class="relative">
+                    {% csrf_token %}
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                            <i class="fab fa-youtube text-2xl text-yt-red"></i>
+                        </div>
+                        <input type="url" name="video_link" required placeholder="Paste any YouTube video URL here..."
+                            class="w-full pl-16 pr-32 py-6 bg-white/80 backdrop-blur-md border border-gray-300 rounded-2xl text-gray-800 placeholder-gray-500 text-lg search-glow focus:outline-none focus:ring-2 focus:ring-yt-red transition-all" />
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                            <button type="submit"
+                                class="bg-gradient-to-r from-yt-red to-red-600 hover:from-red-600 hover:to-red-700 text-white px-8 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 flex items-center space-x-2">
+                                <i class="fas fa-magic"></i>
+                                <span>Analyze Video</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <p class="text-gray-500 mt-4 text-sm">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Supports all YouTube formats • Automatic transcript extraction • AI-powered analysis
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    {% if videos %}
+    <div class="py-12 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="stats-card rounded-2xl p-6 text-gray-800 text-center">
+                    <div class="text-4xl font-bold mb-2">{{ total_videos }}</div>
+                    <div class="text-gray-600">Videos Processed</div>
+                </div>
+                <div class="stats-card rounded-2xl p-6 text-gray-800 text-center">
+                    <div class="text-4xl font-bold mb-2">∞</div>
+                    <div class="text-gray-600">Questions Possible</div>
+                </div>
+                <div class="stats-card rounded-2xl p-6 text-gray-800 text-center">
+                    <div class="text-4xl font-bold mb-2">AI</div>
+                    <div class="text-gray-600">Powered Analysis</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    {% if videos %}
+    <div class="py-8 px-6">
+        <div class="max-w-6xl mx-auto text-center">
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="{% url 'app:query_page' %}"
+                    class="bg-gradient-to-r from-yt-red to-aqua hover:from-red-600 hover:to-cyan-600 text-white px-8 py-4 rounded-2xl font-semibold transition-all transform hover:scale-105 flex items-center space-x-3">
+                    <i class="fas fa-search text-xl"></i>
+                    <span>Search Videos</span>
+                </a>
+                <a href="{% url 'app:chatbot_page' %}"
+                    class="bg-gradient-to-r from-aqua to-yt-red hover:from-cyan-600 hover:to-red-600 text-white px-8 py-4 rounded-2xl font-semibold transition-all transform hover:scale-105 flex items-center space-x-3">
+                    <i class="fas fa-comments text-xl"></i>
+                    <span>AI Chat</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Videos Grid -->
+    {% if videos %}
+    <div class="py-12 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Your Video Library</h2>
+                <p class="text-gray-600 text-lg">Click any video to explore its content</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {% for video in videos %}
+                <div class="video-card glass-card rounded-2xl overflow-hidden group cursor-pointer">
+                    <div class="video-thumbnail">
+                        <a href="https://www.youtube.com/watch?v={{ video.id }}" target="_blank">
+                            <img src="{{ video.thumbnail }}" alt="{{ video.title }}" class="w-full h-48 object-cover" />
+                        </a>
+                        <div class="absolute top-3 right-3">
+                            <div class="w-3 h-3 bg-green-400 rounded-full pulse-dot"></div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3
+                            class="text-gray-800 font-semibold mb-2 line-clamp-2 group-hover:text-yt-red transition-colors">
+                            <a href="https://www.youtube.com/watch?v={{ video.id }}" target="_blank">
+                                {{ video.title }}
+                            </a>
+                        </h3>
+                        <p class="text-gray-600 text-sm mb-4">
+                            <i class="far fa-calendar-alt mr-2"></i>
+                            {{ video.published_at }}
+                        </p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex space-x-2">
+                                <a href="{% url 'app:query_page' %}"
+                                    class="text-yt-red hover:text-red-600 transition-colors">
+                                    <i class="fas fa-search"></i>
+                                </a>
+                                <a href="{% url 'app:chatbot_page' %}"
+                                    class="text-aqua hover:text-cyan-600 transition-colors">
+                                    <i class="fas fa-comment"></i>
+                                </a>
+                            </div>
+                            <a href="{% url 'app:delete_video' video.id %}"
+                                class="text-yt-red hover:text-red-600 transition-colors"
+                                onclick="return confirm('Remove this video from your library?')">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if videos.paginator.num_pages > 1 %}
+            <div class="mt-16 flex justify-center">
+                <nav class="flex space-x-2">
+                    {% if videos.has_previous %}
+                    <a href="?page={{ videos.previous_page_number }}"
+                        class="px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-lg hover:bg-white/20 transition-colors">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+
+                    {% for i in videos.paginator.page_range %}
+                    {% if videos.number == i %}
+                    <span class="px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-lg">
+                        {{ i }}
+                    </span>
+                    {% elif i > videos.number|add:'-3' and i < videos.number|add:'3' %} <a href="?page={{ i }}"
+                        class="px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-lg hover:bg-white/20 transition-colors">
+                        {{ i }}
+                        </a>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if videos.has_next %}
+                        <a href="?page={{ videos.next_page_number }}"
+                            class="px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-lg hover:bg-white/20 transition-colors">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Empty State -->
+    {% if not videos %}
+    <div class="py-20 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-32 h-32 bg-white/10 rounded-full mb-6">
+                    <i class="fas fa-film text-6xl text-white/60"></i>
+                </div>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-4">No Videos Yet</h2>
+            <p class="text-white/70 text-lg mb-8 max-w-2xl mx-auto">
+                Start by pasting a YouTube video URL above. The AI will analyze the content, extract transcripts, and
+                make it searchable and chat-ready.
+            </p>
+
+            <!-- Feature Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+                <div class="glass-card rounded-2xl p-6 text-white text-center">
+                    <div class="feature-icon text-4xl mb-4">🎯</div>
+                    <h3 class="text-xl font-semibold mb-2">Smart Search</h3>
+                    <p class="text-white/70 text-sm">Find any moment in your videos with intelligent search</p>
+                </div>
+                <div class="glass-card rounded-2xl p-6 text-white text-center">
+                    <div class="feature-icon text-4xl mb-4">🤖</div>
+                    <h3 class="text-xl font-semibold mb-2">AI Chat</h3>
+                    <p class="text-white/70 text-sm">Ask questions and get answers from video content</p>
+                </div>
+                <div class="glass-card rounded-2xl p-6 text-white text-center">
+                    <div class="feature-icon text-4xl mb-4">⚡</div>
+                    <h3 class="text-xl font-semibold mb-2">Instant Analysis</h3>
+                    <p class="text-white/70 text-sm">Process videos in seconds with advanced AI</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
